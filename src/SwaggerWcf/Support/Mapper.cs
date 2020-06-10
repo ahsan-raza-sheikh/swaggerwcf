@@ -27,7 +27,6 @@ namespace SwaggerWcf.Support
 
         internal IEnumerable<Path> FindMethods(Type markedType, IList<Type> definitionsTypesList, string basePath = null)
         {
-            List<Path> paths = new List<Path>();
             List<Tuple<string, PathAction>> pathActions = new List<Tuple<string, PathAction>>();
 
             List <Type> types;
@@ -83,35 +82,44 @@ namespace SwaggerWcf.Support
                 }
             }
 
+            var paths = PathActionsToPathes(pathActions, basePath);
+
+            return paths;
+        }
+
+        private List<Path> PathActionsToPathes(IEnumerable<Tuple<string, PathAction>> pathActions, string basePath)
+        {
+            var paths = new List<Path>();
+
+            bool useBasePath = !string.IsNullOrWhiteSpace(basePath);
+
             foreach (var pathAction in pathActions)
             {
                 var path = pathAction.Item1;
                 if (!path.StartsWith("/"))
                     path = "/" + path;
 
-                if (string.IsNullOrWhiteSpace(basePath) == false)
+                if (useBasePath)
                     path = basePath + path;
 
-                GetPath(path, paths).Actions.Add(pathAction.Item2);
+                var existing = paths.FirstOrDefault(p => string.Equals(p.Id, path, StringComparison.OrdinalIgnoreCase));
+                if (existing == null)
+                {
+                    existing = new Path
+                    {
+                        Id = path,
+                        Actions = new List<PathAction> { pathAction.Item2 }
+                    };
+                    paths.Add(existing);
+                }
+                // Avoid duplicates produced by inherited interfaces.
+                else if (existing.Actions.All(act => !string.Equals(act.Id, pathAction.Item2.Id)))
+                {
+                    existing.Actions.Add(pathAction.Item2);
+                }
             }
 
             return paths;
-        }
-
-        private Path GetPath(string id, List<Path> paths)
-        {
-            var path = paths.FirstOrDefault(p => p.Id == id);
-            if (path == null)
-            {
-                path = new Path
-                {
-                    Id = id,
-                    Actions = new List<PathAction>()
-                };
-                paths.Add(path);
-            }
-
-            return path;
         }
 
         private static string ConcatPaths(string basePath, string pathUrl)
@@ -130,7 +138,7 @@ namespace SwaggerWcf.Support
                                                                    MethodInfo[] interfaceMethods,
                                                                    IList<Type> definitionsTypesList)
         {
-            int methodsCounts = interfaceMethods.Count();
+            int methodsCounts = interfaceMethods.Length;
             for (int index = 0; index < methodsCounts; index++)
             {
                 MethodInfo implementation = targetMethods[index];
@@ -347,13 +355,21 @@ namespace SwaggerWcf.Support
 
                     uriTemplate = RemoveParametersDefaultValuesFromUri(uriTemplate);
                 }
+
                 yield return new Tuple<string, PathAction>(uriTemplate, operation);
             }
         }
 
         private string GetUriTemplate(WebInvokeAttribute wi, WebGetAttribute wg, MethodInfo declaration)
         {
-            return ((wi == null) ? wg.UriTemplate : wi.UriTemplate) ?? declaration.Name;
+            var uriTemplate = ((wi == null) ? wg.UriTemplate : wi.UriTemplate);
+            if(string.IsNullOrWhiteSpace(uriTemplate))
+                uriTemplate = declaration.Name;
+
+            if (uriTemplate.StartsWith("{"))
+                uriTemplate = declaration.Name + uriTemplate;
+
+            return uriTemplate;
         }
 
         private string RemoveParametersDefaultValuesFromUri(string uriTemplate)
