@@ -23,7 +23,7 @@ namespace SwaggerWcf.Support
             return BuildServiceCommon(path, BuildPaths<TBusiness>);
         }
 
-        private static Service BuildServiceCommon(string path, Action<Service, IList<string>, List<string>, IList<Type>> buildPaths)
+        private static Service BuildServiceCommon(string path, Action<Service, IList<string>, List<TagElement>, IList<Type>> buildPaths)
         {
             const string sectionName = "swaggerwcf";
             SwaggerWcfSection config =
@@ -31,8 +31,8 @@ namespace SwaggerWcf.Support
 
             List<Type> definitionsTypesList = new List<Type>();
             Service service = new Service();
-            List<string> hiddenTags = SwaggerWcfEndpoint.FilterHiddenTags(path, GetHiddenTags(config));
-            List<string> visibleTags = SwaggerWcfEndpoint.FilterVisibleTags(path, GetVisibleTags(config));
+            var hiddenTags = GetHiddenTags(config);
+            var visibleTags = GetVisibleTags(config);
             IReadOnlyDictionary<string, string> settings = GetSettings(config);
 
             ProcessSettings(service, settings);
@@ -40,6 +40,26 @@ namespace SwaggerWcf.Support
             buildPaths(service, hiddenTags, visibleTags, definitionsTypesList);
 
             service.Definitions = DefinitionsBuilder.Process(hiddenTags, visibleTags, definitionsTypesList);
+
+            var distinctTags = service.Paths.SelectMany(p => p.Actions).SelectMany(act => act.Tags)
+                .Distinct();
+
+
+            var tagsToOrder = distinctTags.Select(tagName =>
+            {
+                // If tag listed as visible, try to take Description and SortOrder from there
+                var existingVisibleDef = visibleTags.FirstOrDefault(vt => vt.Name == tagName);
+                return new TagDeffinition
+                {
+                    Name = tagName,
+                    Description = existingVisibleDef?.Description ?? string.Empty,
+                    SortOrder = existingVisibleDef?.SortOrder ?? 0
+                };
+            });
+
+            service.Tags = tagsToOrder.OrderBy(t => t.SortOrder)
+                .ThenBy(t => t.Name)
+                .ToList();
 
             return service;
         }
@@ -53,12 +73,11 @@ namespace SwaggerWcf.Support
                        .ToList() ?? new List<string>();
         }
 
-        private static List<string> GetVisibleTags(SwaggerWcfSection config)
+        private static List<TagElement> GetVisibleTags(SwaggerWcfSection config)
         {
             return config.Tags?.OfType<TagElement>()
-                       .Where(t => t.Visibile.Equals(true))
-                       .Select(t => t.Name)
-                       .ToList() ?? new List<string>();
+                       .Where(t => t.Visibile)
+                       .ToList();
         }
 
         private static IReadOnlyDictionary<string, string> GetSettings(SwaggerWcfSection config)
@@ -104,7 +123,7 @@ namespace SwaggerWcf.Support
                 service.Info.License.Name = settings["InfoLicenseName"];
         }
 
-        private static void BuildPaths(Service service, IList<string> hiddenTags, List<string> visibleTags, IList<Type> definitionsTypesList)
+        private static void BuildPaths(Service service, IList<string> hiddenTags, List<TagElement> visibleTags, IList<Type> definitionsTypesList)
         {
             service.Paths = new List<Path>();
 
@@ -172,7 +191,7 @@ namespace SwaggerWcf.Support
             }
         }
 
-        private static void BuildPaths<TBusiness>(Service service, IList<string> hiddenTags, List<string> visibleTags, IList<Type> definitionsTypesList)
+        private static void BuildPaths<TBusiness>(Service service, IList<string> hiddenTags, List<TagElement> visibleTags, IList<Type> definitionsTypesList)
         {
             var type = typeof(TBusiness);
             service.Paths = new List<Path>();

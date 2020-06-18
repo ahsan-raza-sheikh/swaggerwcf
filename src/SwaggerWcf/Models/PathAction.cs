@@ -42,6 +42,8 @@ namespace SwaggerWcf.Models
         
         public List<KeyValuePair<string, string[]>> Security { get; set; }
 
+        public int SortOrder { get; internal set; }
+
         public void Serialize(JsonWriter writer)
         {
             writer.WritePropertyName(Id);

@@ -65,5 +65,7 @@ namespace SwaggerWcf.Attributes
         ///     Operation path, extends service path
         /// </summary>
         public string OperationPath { get; set; }
+
+        public int SortOrder { get; set; }
     }
 }

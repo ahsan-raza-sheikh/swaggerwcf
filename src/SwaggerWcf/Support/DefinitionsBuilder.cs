@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization;
 using SwaggerWcf.Attributes;
+using SwaggerWcf.Configuration;
 using SwaggerWcf.Models;
 
 namespace SwaggerWcf.Support
 {
     internal sealed class DefinitionsBuilder
     {
-        public static List<Definition> Process(IList<string> hiddenTags, IList<string> visibleTags, List<Type> definitionsTypes)
+        public static List<Definition> Process(IList<string> hiddenTags, IList<TagElement> visibleTags, List<Type> definitionsTypes)
         {
             if (definitionsTypes == null || !definitionsTypes.Any())
                 return new List<Definition>(0);
@@ -36,14 +36,14 @@ namespace SwaggerWcf.Support
             return definitions;
         }
 
-        private static bool IsHidden(Type type, ICollection<string> hiddenTags, ICollection<string> visibleTags)
+        private static bool IsHidden(Type type, ICollection<string> hiddenTags, ICollection<TagElement> visibleTags)
         {
             if (hiddenTags.Contains(type.FullName))
                 return true;
 
             if (type.GetCustomAttribute<SwaggerWcfHiddenAttribute>() != null)
             {
-                return !type.GetCustomAttributes<SwaggerWcfTagAttribute>().Select(t => t.TagName).Any(visibleTags.Contains);
+                return !type.GetCustomAttributes<SwaggerWcfTagAttribute>().Select(t => t.TagName).Any(name => visibleTags.Any(vt => vt.Name == name));
             }
 
             return type.GetCustomAttributes<SwaggerWcfTagAttribute>().Select(t => t.TagName).Any(hiddenTags.Contains);

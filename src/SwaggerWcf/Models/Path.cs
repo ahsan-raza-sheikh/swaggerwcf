@@ -21,7 +21,7 @@ namespace SwaggerWcf.Models
 
             writer.WriteStartObject();
 
-            foreach (PathAction pathAction in Actions)
+            foreach (PathAction pathAction in Actions.OrderBy(a => a.SortOrder))
             {
                 pathAction.Serialize(writer);
             }

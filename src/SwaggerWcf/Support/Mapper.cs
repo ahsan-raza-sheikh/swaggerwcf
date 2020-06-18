@@ -3,27 +3,27 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.ServiceModel;
 using System.ServiceModel.Web;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using SwaggerWcf.Attributes;
+using SwaggerWcf.Configuration;
 using SwaggerWcf.Models;
 
 namespace SwaggerWcf.Support
 {
     internal class Mapper
     {
-        internal Mapper(IList<string> hiddenTags, List<string> visibleTags)
+        internal Mapper(IList<string> hiddenTags, List<TagElement> visibleTags)
         {
             HiddenTags = hiddenTags ?? new List<string>();
-            VisibleTags = visibleTags ?? new List<string>();
+            VisibleTags = visibleTags ?? new List<TagElement>();
         }
 
-        internal readonly IEnumerable<string> HiddenTags;
-        internal readonly IEnumerable<string> VisibleTags;
+        internal readonly IList<string> HiddenTags;
+        internal readonly IEnumerable<TagElement> VisibleTags;
 
         internal IEnumerable<Path> FindMethods(Type markedType, IList<Type> definitionsTypesList, string basePath = null)
         {
@@ -153,13 +153,13 @@ namespace SwaggerWcf.Support
                 methodTags = methodTags.Distinct().ToList();
 
                 if ((methodTags.Count == 0 && HiddenTags.Contains("default"))
-                    || methodTags.Select(t => t.TagName).Any(HiddenTags.Contains))
+                    || methodTags.Any(t => HiddenTags.Contains(t.TagName)))
                     continue;
 
-                //if the method is marked Hidden anywhere, skip it
+                //if the method is marked Hidden anywhere, skip it unless methods tags listed as visible.
                 if ((implementation.GetCustomAttribute<SwaggerWcfHiddenAttribute>() != null ||
                      declaration.GetCustomAttribute<SwaggerWcfHiddenAttribute>() != null) &&
-                    !methodTags.Select(t => t.TagName).Any(VisibleTags.Contains))
+                    methodTags.All(mt => !VisibleTags.Any(vt => mt.TagName == vt.Name)))
                     continue;
 
                 //find the WebGet/Invoke attributes, or skip if neither is present
@@ -173,6 +173,11 @@ namespace SwaggerWcf.Support
 
                 bool wrappedRequest = IsRequestWrapped(wg, wi);
                 bool wrappedResponse = IsResponseWrapped(wg, wi);
+
+                var wcfPathAttribute = (implementation.GetCustomAttribute(typeof(SwaggerWcfPathAttribute), false) as SwaggerWcfPathAttribute)
+                    ?? (declaration.GetCustomAttribute(typeof(SwaggerWcfPathAttribute), false) as SwaggerWcfPathAttribute);
+                int sortOrder = (wcfPathAttribute?.SortOrder).GetValueOrDefault();
+
 
                 //implementation description overrides interface description
                 string description =
@@ -236,6 +241,7 @@ namespace SwaggerWcf.Support
                 PathAction operation = new PathAction
                 {
                     Id = httpMethod.ToLowerInvariant(),
+                    SortOrder = sortOrder,
                     Summary = summary,
                     Description = description,
                     Tags =
@@ -321,7 +327,7 @@ namespace SwaggerWcf.Support
                         continue;
                     }
 
-                    if (piTags.Select(t => t.TagName).Any(HiddenTags.Contains))
+                    if (piTags.Any(t => HiddenTags.Contains(t.TagName)))
                         continue;
 
                     Type type = settings == null || settings.ParameterType == null

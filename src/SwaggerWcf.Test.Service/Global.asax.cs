@@ -11,8 +11,6 @@ namespace SwaggerWcf.Test.Service
     {
         protected void Application_Start(object sender, EventArgs e)
         {
-            SwaggerWcfEndpoint.FilterVisibleTags = FilterVisibleTags;
-            SwaggerWcfEndpoint.FilterHiddenTags = FilterHiddenTags;
             SwaggerWcfEndpoint.DisableSwaggerUI = false;
 
             // route with a simple class
@@ -22,16 +20,6 @@ namespace SwaggerWcf.Test.Service
             RouteTable.Routes.Add(new ServiceRoute("v1/authors", new WebServiceHostFactory(), typeof(AuthorService)));
             
             RouteTable.Routes.Add(new ServiceRoute("api-docs", new WebServiceHostFactory(), typeof(SwaggerWcfEndpoint)));
-        }
-
-        private static List<string> FilterVisibleTags(string path, List<string> visibleTags)
-        {
-            return visibleTags;
-        }
-
-        private static List<string> FilterHiddenTags(string path, List<string> hiddenTags)
-        {
-            return hiddenTags;
         }
 
         protected void Session_Start(object sender, EventArgs e)

@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 
 namespace SwaggerWcf.Configuration
 {
@@ -27,6 +28,26 @@ namespace SwaggerWcf.Configuration
             set
             {
                 this["visible"] = value;
+            }
+        }
+
+        [ConfigurationProperty("description", DefaultValue = "", IsRequired = false)]
+        public string Description {
+            get => this["description"] as string;
+            set => this["description"] = value;
+        }
+
+
+        [ConfigurationProperty("sortOrder", DefaultValue = "0", IsRequired = false)]
+        public int SortOrder 
+        {
+            get 
+            {
+                return (int) this["sortOrder"];
+            }
+            set
+            {
+                this["sortOrder"] = value;
             }
         }
     }

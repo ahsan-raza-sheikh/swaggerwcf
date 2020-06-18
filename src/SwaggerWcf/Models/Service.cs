@@ -29,6 +29,8 @@ namespace SwaggerWcf.Models
 
         public SecurityDefinitions SecurityDefinitions { get; set; }
 
+        public List<TagDeffinition> Tags { get; set; }
+
         public void Serialize(JsonWriter writer)
         {
             writer.WriteStartObject();
@@ -78,13 +80,26 @@ namespace SwaggerWcf.Models
                 WriteSecurityDefinitions(writer);
             }
 
+
+            if (Tags?.Count > 0)
+            {
+                writer.WritePropertyName("tags");
+                var tagsValue = JsonConvert.SerializeObject(Tags);
+                writer.WriteRawValue(tagsValue);
+            }
+
+
             writer.WriteEndObject();
         }
 
         private void WritePaths(JsonWriter writer)
         {
             writer.WriteStartObject();
-            foreach (Path p in Paths.OrderBy(p => p.Id))
+
+            var orderedPathes = Paths.OrderBy(p => p.Actions.FirstOrDefault()?.SortOrder)
+                .ThenBy(p => p.Id);
+
+            foreach (var p in orderedPathes)
             {
                 p.Serialize(writer);
             }
