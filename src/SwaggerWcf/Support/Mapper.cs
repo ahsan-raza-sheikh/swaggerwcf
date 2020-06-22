@@ -29,18 +29,30 @@ namespace SwaggerWcf.Support
         {
             List<Tuple<string, PathAction>> pathActions = new List<Tuple<string, PathAction>>();
 
-            List <Type> types;
+            List<Type> types;
             Type serviceType;
             if (markedType.IsInterface)
             {
                 //search for service impl type
-                var allTypes = AppDomain.CurrentDomain
-                    .GetAssemblies()
-                    .SelectMany(s => s.GetTypes())
-                    .Where(type => markedType.IsAssignableFrom(type) && !type.IsInterface)
-                    .ToList();
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                List<Type> allTypes = new List<Type>();
+                foreach (var assembly in assemblies)
+                {
+                    try
+                    {
+                        var assemblyTypes = assembly.GetTypes()
+                                .Where(type => markedType.IsAssignableFrom(type) && !type.IsInterface);
+                        allTypes.AddRange(assemblyTypes);
+                    }
+                    catch(Exception ex)
+                    {
+                        System.Diagnostics.Trace.TraceError($"Failed to analyze assembly: {assembly.FullName}. Exception details: {ex}");
+                    }
+                }
 
-                serviceType = allTypes.Except(allTypes.Select(type => type.BaseType)).Single();
+                serviceType = allTypes.Except(allTypes.Select(type => type.BaseType)).FirstOrDefault();
+                if (serviceType == null)
+                    return Enumerable.Empty<Path>();
 
                 types = new List<Type> { markedType };
             }
@@ -151,15 +163,23 @@ namespace SwaggerWcf.Support
                     methodTags.Concat(declaration.GetCustomAttributes<SwaggerWcfTagAttribute>()).ToList();
 
                 methodTags = methodTags.Distinct().ToList();
+                
+                // If no tags on the method - check declared Type/Interface itself
+                if (methodTags.Count < 1)
+                {
+                    methodTags = implementation.DeclaringType.GetCustomAttributes<SwaggerWcfTagAttribute>()
+                        .Concat(declaration.DeclaringType.GetCustomAttributes<SwaggerWcfTagAttribute>())
+                        .ToList();
+                }
 
                 if ((methodTags.Count == 0 && HiddenTags.Contains("default"))
                     || methodTags.Any(t => HiddenTags.Contains(t.TagName)))
                     continue;
 
-                //if the method is marked Hidden anywhere, skip it unless methods tags listed as visible.
-                if ((implementation.GetCustomAttribute<SwaggerWcfHiddenAttribute>() != null ||
-                     declaration.GetCustomAttribute<SwaggerWcfHiddenAttribute>() != null) &&
-                    methodTags.All(mt => !VisibleTags.Any(vt => mt.TagName == vt.Name)))
+                //if the method is marked Hidden anywhere, skip it (even if methods tags listed as visible).
+                if ((implementation.GetCustomAttribute<SwaggerWcfHiddenAttribute>() != null
+                        || declaration.GetCustomAttribute<SwaggerWcfHiddenAttribute>() != null)
+                    )
                     continue;
 
                 //find the WebGet/Invoke attributes, or skip if neither is present
