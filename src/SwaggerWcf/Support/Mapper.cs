@@ -16,14 +16,12 @@ namespace SwaggerWcf.Support
 {
     internal class Mapper
     {
-        internal Mapper(IList<string> hiddenTags, List<TagElement> visibleTags)
+        private readonly IList<string> HiddenTags;
+
+        internal Mapper(IList<string> hiddenTags)
         {
             HiddenTags = hiddenTags ?? new List<string>();
-            VisibleTags = visibleTags ?? new List<TagElement>();
         }
-
-        internal readonly IList<string> HiddenTags;
-        internal readonly IEnumerable<TagElement> VisibleTags;
 
         internal IEnumerable<Path> FindMethods(Type markedType, IList<Type> definitionsTypesList, string basePath = null)
         {

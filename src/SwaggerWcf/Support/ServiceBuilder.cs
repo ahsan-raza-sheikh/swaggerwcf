@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Reflection;
-using Newtonsoft.Json;
 using SwaggerWcf.Attributes;
 using SwaggerWcf.Configuration;
 using SwaggerWcf.Models;
@@ -127,43 +126,30 @@ namespace SwaggerWcf.Support
         {
             service.Paths = new List<Path>();
 
-            var types = GetAssemblyTypes(hiddenTags);
-            var useBasePathProperty = types.Select(t => t.GetCustomAttribute<SwaggerWcfAttribute>().ServicePath)
-                                   .Distinct()
-                                   .Count() == 1;
-            
-            foreach (var ti in types)
-            {
-                var da = ti.GetCustomAttribute<SwaggerWcfAttribute>();
+            IEnumerable<(SwaggerWcfAttribute, TypeInfo)> types = GetAssemblyTypes(hiddenTags);
 
+            var mapper = new Mapper(hiddenTags);
+
+            foreach (var (da, ti) in types)
+            {
                 if (service.Info is null)
                     service.Info = ti.GetServiceInfo();
 
-                var mapper = new Mapper(hiddenTags, visibleTags);
-                  
-                if (string.IsNullOrWhiteSpace(service.BasePath) && useBasePathProperty)
-                    service.BasePath = da.ServicePath;
+                if (!string.IsNullOrWhiteSpace(service.BasePath))
+                    service.BasePath.TrimEnd('/');
 
-                if (service.BasePath != null && service.BasePath.EndsWith("/"))
-                    service.BasePath = service.BasePath.Substring(0, service.BasePath.Length - 1);
+                string servicePath = string.IsNullOrWhiteSpace(da.ServicePath) ? string.Empty
+                    : da.ServicePath.TrimEnd('/');
 
-                string basePath = null;
-                if (!useBasePathProperty)
-                {
-                    basePath = da.ServicePath;
+                if(!string.IsNullOrWhiteSpace(servicePath) && !servicePath.StartsWith("/"))
+                    servicePath = "/" + servicePath;
 
-                    if (basePath != null && basePath.EndsWith("/"))
-                        basePath = basePath.Substring(0, basePath.Length - 1);
-                    if (basePath != null && basePath.StartsWith("/") == false)
-                        basePath = "/" + basePath;
-                }
-
-                var paths = mapper.FindMethods(ti.AsType(), definitionsTypesList, basePath);
+                var paths = mapper.FindMethods(ti.AsType(), definitionsTypesList, servicePath);
                 service.Paths.AddRange(paths);
             }
         }
 
-        private static IEnumerable<TypeInfo> GetAssemblyTypes(IList<string> hiddenTags)
+        private static IEnumerable<(SwaggerWcfAttribute, TypeInfo)> GetAssemblyTypes(IList<string> hiddenTags)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
@@ -186,7 +172,7 @@ namespace SwaggerWcf.Support
                     if (da == null || hiddenTags.Any(ht => ht == ti.AsType().Name))
                         continue;
 
-                    yield return ti;
+                    yield return (da, ti);
                 }
             }
         }
@@ -200,7 +186,7 @@ namespace SwaggerWcf.Support
             if (da == null || hiddenTags.Any(ht => ht == type.Name))
                 return;
 
-            var mapper = new Mapper(hiddenTags, visibleTags);
+            var mapper = new Mapper(hiddenTags);
 
             if (string.IsNullOrWhiteSpace(service.BasePath))
                 service.BasePath = da.ServicePath;

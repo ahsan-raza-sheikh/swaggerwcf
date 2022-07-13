@@ -18,6 +18,9 @@ namespace SwaggerWcf
     [AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
     public class SwaggerWcfEndpoint : ISwaggerWcfEndpoint
     {
+        private static readonly object _initLock = new object();
+        private static bool _initialized;
+
         public SwaggerWcfEndpoint()
         {
             Init(ServiceBuilder.Build);
@@ -34,7 +37,7 @@ namespace SwaggerWcf
 
         internal static string BasePath { get; private set; }
 
-        private static Dictionary<string, string> SwaggerFiles { get; } = new Dictionary<string, string>();
+        private static readonly Dictionary<string, string> _swaggerFiles = new Dictionary<string, string>();
 
         public static bool DisableSwaggerUI { get; set; }
 
@@ -48,21 +51,32 @@ namespace SwaggerWcf
         [MethodImpl(MethodImplOptions.Synchronized)]
         internal static void Init(Func<string, Service> buildService)
         {
-            string[] paths = GetAllPaths().Where(p => !SwaggerFiles.Keys.Contains(p)).ToArray();
+            if (_initialized)
+                return;
 
-            foreach (string path in paths)
+            lock (_initLock)
             {
-                Service service = buildService(path);
-                if (Info != null)
-                    service.Info = Info;
-                if (SecurityDefinitions != null)
-                    service.SecurityDefinitions = SecurityDefinitions;
-                if (BasePath != null)
-                    service.BasePath = BasePath;
+                if (_initialized)
+                    return;
 
-                string swagger = Serializer.Process(service);
-                if (SwaggerFiles.ContainsKey(path) == false)
-                    SwaggerFiles.Add(path, swagger);
+                string[] paths = GetAllPaths().Where(p => !_swaggerFiles.Keys.Contains(p)).ToArray();
+
+                foreach (string path in paths)
+                {
+                    Service service = buildService(path);
+                    if (Info != null)
+                        service.Info = Info;
+                    if (SecurityDefinitions != null)
+                        service.SecurityDefinitions = SecurityDefinitions;
+                    if (BasePath != null)
+                        service.BasePath = BasePath;
+
+                    string swagger = Serializer.Process(service);
+                    if (!_swaggerFiles.ContainsKey(path))
+                        _swaggerFiles.Add(path, swagger);
+                }
+
+                _initialized = true;
             }
         }
 
@@ -75,9 +89,9 @@ namespace SwaggerWcf
         private static string GetSwaggerFileContents()
         {
             string fullPath = WebOperationContext.Current?.IncomingRequest.UriTemplateMatch?.RequestUri?.AbsolutePath ?? "";
-            string key = SwaggerFiles.Keys.ToList().ClosestMatch(fullPath);
+            string key = _swaggerFiles.Keys.ToList().ClosestMatch(fullPath);
 
-            return key != null ? SwaggerFiles[key] : "";
+            return key != null ? _swaggerFiles[key] : "";
         }
 
         public static void SetCustomZip(Stream customSwaggerUiZipStream)
@@ -129,9 +143,7 @@ namespace SwaggerWcf
                 ? content.Substring(0, content.IndexOf("?", StringComparison.Ordinal))
                 : content;
 
-            string contentType;
-            long contentLength;
-            Stream stream = Support.StaticContent.GetFile(filename, out contentType, out contentLength);
+            Stream stream = Support.StaticContent.GetFile(filename, out string contentType, out long contentLength);
 
             if (stream == Stream.Null)
             {

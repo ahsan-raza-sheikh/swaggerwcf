@@ -16,13 +16,16 @@ namespace SwaggerWcf.Support
         public static void ProcessFields(Type definitionType, DefinitionSchema schema, IList<string> hiddenTags,
                                               Stack<Type> typesStack)
         {
-            var properties = definitionType.GetFields();
+            var fields = definitionType.GetFields();
 
-            foreach (var fieldInfo in properties)
+            foreach (var fieldInfo in fields)
             {
                 DefinitionProperty prop = ProcessField(fieldInfo, hiddenTags, typesStack);
 
                 if (prop == null)
+                    continue;
+
+                if (schema.Properties.Any(p => string.Equals(p.Title, prop.Title, StringComparison.OrdinalIgnoreCase)))
                     continue;
 
                 if (prop.TypeFormat.Type == ParameterType.Array)

@@ -33,6 +33,9 @@ namespace SwaggerWcf.Support
                 if (prop == null)
                     continue;
 
+                if (schema.Properties.Any(p => string.Equals(p.Title, prop.Title, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
                 if (prop.TypeFormat.Type == ParameterType.Array)
                 {
                     Type propType = propertyInfo.PropertyType;
