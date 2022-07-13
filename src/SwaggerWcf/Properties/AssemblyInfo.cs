@@ -6,11 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("SwaggerWcf")]
-[assembly: AssemblyDescription("Swagger for WCF")]
-[assembly: AssemblyCompany("abelsilva")]
+[assembly: AssemblyDescription("Swagger integration for REST WCF (forked from abelsilva)")]
 [assembly: AssemblyProduct("SwaggerWcf")]
-[assembly: AssemblyCopyright("Copyright ©  2018")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCopyright("Copyright В©  2018")]
 [assembly: AssemblyCulture("")]
 
 #if DEBUG
@@ -25,7 +23,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("d2eeaa63-60e5-4fda-8b62-e05dc8be8b5f")]
+[assembly: Guid("3541BAF4-4933-4A0F-B426-7DCBDFEB57CB")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -37,6 +35,6 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.2.15")]
-[assembly: AssemblyFileVersion("0.2.15")]
-[assembly: AssemblyInformationalVersion("0.2.15")]
+[assembly: AssemblyVersion("1.0.4")]
+[assembly: AssemblyFileVersion("1.0.4")]
+[assembly: AssemblyInformationalVersion("1.0.4")]
