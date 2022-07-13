@@ -1,17 +1,17 @@
 ﻿<?xml version="1.0"?>
 <package>
   <metadata>
-    <id>$title$</id>
+    <id>Swagger.WCF</id>
     <version>$version$</version>
-    <title>$title$</title>
-    <authors>$author$</authors>
-    <owners>$author$</owners>
+    <title>Swagger.WCF</title>
+    <authors>AndrewWinDev</authors>
+    <owners>AndrewWinDev</owners>
     <licenseUrl>https://raw.githubusercontent.com/abelsilva/swaggerwcf/master/LICENSE</licenseUrl>
-    <projectUrl>https://github.com/abelsilva/swaggerwcf</projectUrl>
+    <projectUrl>https://github.com/AndrewWinDev/swaggerwcf</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
     <releaseNotes>#160</releaseNotes>
-    <copyright>Copyright 2018</copyright>
+    <copyright>Copyright 2020</copyright>
     <tags>swagger wcf .net c#</tags>
   </metadata>
 </package>
